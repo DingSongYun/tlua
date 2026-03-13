@@ -1,0 +1,18 @@
+-- Function with typed parameters and return type
+function add(a: number, b: number): number
+  return a + b
+end
+
+-- Function with no type annotations (passthrough)
+function greet(name)
+  return "Hello " .. name
+end
+
+-- Local function with types
+local function multiply(x: number, y: number): number
+  return x * y
+end
+
+print(add(1, 2))
+print(greet("world"))
+print(multiply(3, 4))

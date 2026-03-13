@@ -1,0 +1,242 @@
+(* ============================================================ *)
+(* TypingLua — .tlua Inline Type Annotation EBNF Grammar       *)
+(* Version: 2.0                                                *)
+(* Supersedes: v1.0 comment-based annotation (archived)        *)
+(* Covers: inline colon-style type annotations in .tlua files  *)
+(*         type expressions: base, union, optional, array,     *)
+(*         table generic, function signature                    *)
+(*         injection points: local var, global var,             *)
+(*         function params, function return                     *)
+(* ============================================================ *)
+
+(* ============================================================ *)
+(* PART 1 — Type Expressions                                   *)
+(* ============================================================ *)
+
+(* ------------------------------------------------------------ *)
+(* 1.1 Type expression entry point                              *)
+(* ------------------------------------------------------------ *)
+
+(* A type_expr is the top-level production for any type.        *)
+(* Precedence (lowest to highest):                              *)
+(*   union_type  >  postfix_type  >  primary_type               *)
+
+type_expr           = union_type ;
+
+(* ------------------------------------------------------------ *)
+(* 1.2 Union type                                               *)
+(* ------------------------------------------------------------ *)
+
+(* T1 | T2 | T3  — pipe-separated alternatives                 *)
+(* The pipe MAY be surrounded by optional whitespace.           *)
+
+union_type          = postfix_type , { ows , "|" , ows , postfix_type } ;
+
+(* ------------------------------------------------------------ *)
+(* 1.3 Postfix types (optional and array)                       *)
+(* ------------------------------------------------------------ *)
+
+(* T?     — optional, equivalent to T|nil                       *)
+(* T[]    — array, equivalent to table<integer, T>              *)
+(* T[]?   — optional array                                      *)
+(* T[][]  — nested array                                        *)
+
+postfix_type        = primary_type , { postfix_op } ;
+
+postfix_op          = "?"                              (* optional *)
+                    | "[]" ;                           (* array    *)
+
+(* ------------------------------------------------------------ *)
+(* 1.4 Primary types                                            *)
+(* ------------------------------------------------------------ *)
+
+primary_type        = base_type
+                    | table_type
+                    | function_type
+                    | "(" , ows , type_expr , ows , ")" ;   (* parenthesized grouping *)
+
+(* ------------------------------------------------------------ *)
+(* 1.5 Base types (11 keywords)                                 *)
+(* ------------------------------------------------------------ *)
+
+(* All base type keywords are case-sensitive.                   *)
+
+base_type           = "nil"
+                    | "boolean"
+                    | "number"
+                    | "integer"
+                    | "string"
+                    | "table"            (* bare table, no generics *)
+                    | "function"         (* bare function, no signature *)
+                    | "thread"
+                    | "userdata"
+                    | "any"
+                    | "void" ;
+
+(* ------------------------------------------------------------ *)
+(* 1.6 Table generic type                                       *)
+(* ------------------------------------------------------------ *)
+
+(* table<K, V> — generic table with key and value types         *)
+
+table_type          = "table" , "<" , ows , type_expr , ows , "," , ows , type_expr , ows , ">" ;
+
+(* ------------------------------------------------------------ *)
+(* 1.7 Function signature type                                  *)
+(* ------------------------------------------------------------ *)
+
+(* fun(name: type, ...): return_type                            *)
+
+function_type       = "fun" , "(" , ows , [ fun_param_list ] , ows , ")"
+                    , [ ows , ":" , ows , fun_return_type ] ;
+
+fun_param_list      = fun_param , { ows , "," , ows , fun_param } ;
+
+fun_param           = identifier , ows , ":" , ows , type_expr ;
+
+fun_return_type     = type_expr ;
+
+(* ============================================================ *)
+(* PART 2 — Type Annotation Injection Points                   *)
+(* ============================================================ *)
+
+(* The following productions extend the standard Lua 5.4        *)
+(* grammar. Only the EXTENDED / REPLACED rules are shown here.  *)
+(* All other Lua 5.4 productions remain unchanged.              *)
+
+(* ------------------------------------------------------------ *)
+(* 2.1 Local variable declaration (extended)                    *)
+(* ------------------------------------------------------------ *)
+
+(* Standard Lua 5.4:                                            *)
+(*   local namelist ['=' explist]                                *)
+(* Extended .tlua:                                               *)
+(*   local typed_namelist ['=' explist]                          *)
+
+typed_local_stat    = "local" , ws , typed_namelist , [ ows , "=" , ows , explist ] ;
+
+typed_namelist      = typed_name , { ows , "," , ows , typed_name } ;
+
+typed_name          = identifier , [ ows , ":" , ows , type_expr ] ;
+
+(* NOTE: In a multi-variable declaration like                   *)
+(*   local a: string, b: number = "hi", 1                      *)
+(* the comma after 'string' is a VARIABLE SEPARATOR, not part   *)
+(* of the type expression. This is unambiguous because:         *)
+(* - Union types use '|' not ','                                *)
+(* - The comma terminates the type_expr for variable 'a'        *)
+
+(* ------------------------------------------------------------ *)
+(* 2.2 Global variable assignment (extended)                    *)
+(* ------------------------------------------------------------ *)
+
+(* Standard Lua 5.4:                                            *)
+(*   varlist '=' explist                                         *)
+(* Extended .tlua (for simple Name assignment):                  *)
+(*   Name ':' type_expr '=' explist                             *)
+
+typed_global_assign = identifier , ows , ":" , ows , type_expr , ows , "=" , ows , explist ;
+
+(* NOTE: Global type annotations only apply to simple Name      *)
+(* assignments, not to table field assignments like t.x = 1.    *)
+
+(* ------------------------------------------------------------ *)
+(* 2.3 Function parameters (extended)                           *)
+(* ------------------------------------------------------------ *)
+
+(* Standard Lua 5.4:                                            *)
+(*   funcbody ::= '(' [parlist] ')' block 'end'                 *)
+(* Extended .tlua:                                               *)
+(*   funcbody ::= '(' [typed_parlist] ')' [':' return_typelist] block 'end' *)
+
+typed_funcbody      = "(" , ows , [ typed_parlist ] , ows , ")"
+                    , [ ows , ":" , ows , return_typelist ]
+                    , block , "end" ;
+
+typed_parlist       = typed_par , { ows , "," , ows , typed_par }
+                    , [ ows , "," , ows , "..." ] 
+                    | "..." ;
+
+typed_par           = identifier , [ ows , ":" , ows , type_expr ] ;
+
+(* NOTE: Parameters may be individually typed or untyped.       *)
+(* Untyped parameters have implicit type 'any'.                 *)
+
+(* ------------------------------------------------------------ *)
+(* 2.4 Function return type (extended)                          *)
+(* ------------------------------------------------------------ *)
+
+(* The return type annotation comes after the closing ')' of    *)
+(* the parameter list, using a colon ':'.                       *)
+(*                                                              *)
+(* Single return:   function f(): number                        *)
+(* Multi return:    function f(): number, string                *)
+(* Parenthesized:   function f(): (number, string)   (optional) *)
+(*                                                              *)
+(* The return_typelist ends at the start of the function body   *)
+(* (i.e., the next statement or 'end').                         *)
+
+return_typelist     = "(" , ows , type_expr , { ows , "," , ows , type_expr } , ows , ")"
+                    | type_expr , { ows , "," , ows , type_expr } ;
+
+(* NOTE: Disambiguation for multi-return types:                 *)
+(* In 'function f(): number, string', the commas belong to the  *)
+(* return_typelist, NOT to a statement separator. The parser     *)
+(* greedily reads type expressions after ':' until it hits a    *)
+(* token that cannot start/continue a type_expr (typically a    *)
+(* newline followed by a statement keyword, or 'end').          *)
+
+(* ============================================================ *)
+(* PART 3 — Function Declaration Forms (extended)              *)
+(* ============================================================ *)
+
+(* All function declaration forms support the typed_funcbody:   *)
+(*                                                              *)
+(*   function f(a: number): string ... end                      *)
+(*   local function f(a: number): string ... end                *)
+(*   function t.f(a: number): string ... end                    *)
+(*   function t:f(a: number): string ... end                    *)
+(*   local g = function(a: number): string ... end              *)
+(*                                                              *)
+(* The colon in 't:f' (method syntax) is distinguished from     *)
+(* type annotations by syntactic context:                       *)
+(* - Method colon: appears between two identifiers/table paths  *)
+(*   as part of funcname, BEFORE the '('                        *)
+(* - Type colon: appears AFTER an identifier in a param list,   *)
+(*   or AFTER ')' for return type                               *)
+
+typed_funcstat      = "function" , ws , funcname , typed_funcbody ;
+
+typed_local_funcstat = "local" , ws , "function" , ws , identifier , typed_funcbody ;
+
+(* funcname from standard Lua 5.4 is unchanged:                 *)
+(* funcname ::= Name {'.' Name} [':' Name]                     *)
+
+(* ============================================================ *)
+(* PART 4 — Lexical Primitives                                 *)
+(* ============================================================ *)
+
+identifier          = letter , { letter | digit | "_" } ;
+
+letter              = "a" | "b" | ... | "z"
+                    | "A" | "B" | ... | "Z"
+                    | "_" ;
+
+digit               = "0" | "1" | ... | "9" ;
+
+ws                  = " " , { " " } ;                 (* one or more whitespace *)
+ows                 = { " " } ;                        (* zero or more whitespace — optional *)
+
+(* ============================================================ *)
+(* PART 5 — References to Standard Lua 5.4 Productions         *)
+(* ============================================================ *)
+
+(* The following productions are from the standard Lua 5.4      *)
+(* grammar and are NOT redefined here. They are referenced by   *)
+(* the extended productions above:                              *)
+(*                                                              *)
+(*   block      — sequence of statements                        *)
+(*   explist    — comma-separated expression list               *)
+(*   funcname   — Name {'.' Name} [':' Name]                   *)
+(*                                                              *)
+(* See: https://www.lua.org/manual/5.4/manual.html#9            *)

@@ -1,0 +1,8 @@
+{
+    "recommendations": [
+        "ms-vscode.cpptools",
+        "actboy168.lua-debug",
+        "ms-vscode.cmake-tools",
+        "sumneko.lua"
+    ]
+}

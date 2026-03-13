@@ -1,0 +1,23 @@
+# Build output
+build/
+
+# Transpiled output (generated from .tlua)
+examples/*.lua
+
+# IDE
+.vs/
+.vscode/settings.json
+*.user
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Debug logs
+*.log
+
+# VSCode extension (migrated to lua-language-server repo)
+vscode-tlua/
+
+# Active change migrated to lua-language-server repo
+openspec/changes/fork-luals-type-support/

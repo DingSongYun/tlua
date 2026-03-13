@@ -1,0 +1,6 @@
+-- Basic type annotations for local variables
+local x: number = 42
+local name: string = "hello"
+local flag: boolean = true
+local nothing: nil = nil
+print(x, name, flag, nothing)

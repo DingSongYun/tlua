@@ -1,0 +1,24 @@
+-- Advanced type annotations: arrays, generics, nested types
+local nums: number[] = {1, 2, 3}
+local matrix: number[][] = {{1, 2}, {3, 4}}
+local items: string[]? = nil
+
+-- Generic table types
+local scores: table<string, number> = {}
+local config: table<string, table<string, number>> = {}
+
+-- Combined complex types
+local data: table<string, number[]>? = nil
+
+-- Global typed assignment
+x: number = 42
+
+-- Varargs function
+function sum(a: number, ...)
+  return a
+end
+
+print(nums[1], matrix[1][1])
+print(items, type(scores), type(config), data)
+print(x)
+print(sum(1, 2, 3))

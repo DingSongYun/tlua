@@ -1,0 +1,46 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug demo.tlua",
+      "type": "lua",
+      "request": "launch",
+      "program": "${workspaceFolder}/examples/demo.lua",
+      "cwd": "${workspaceFolder}",
+      "stopOnEntry": false,
+      "luaVersion": "lua54",
+      "luaArch": "x86_64",
+      "console": "internalConsole",
+      "outputCapture": ["print", "io.write", "stdout", "stderr"],
+      "sourceCoding": "ansi",
+      "preLaunchTask": "Transpile demo.tlua"
+    },
+    {
+      "name": "Debug demo.lua (直接调试转译后文件)",
+      "type": "lua",
+      "request": "launch",
+      "program": "${workspaceFolder}/examples/demo.lua",
+      "cwd": "${workspaceFolder}",
+      "stopOnEntry": true,
+      "luaVersion": "lua54",
+      "luaArch": "x86_64",
+      "console": "internalConsole",
+      "outputCapture": ["print", "io.write", "stdout", "stderr"],
+      "sourceCoding": "ansi",
+      "preLaunchTask": "Transpile demo.tlua"
+    },
+    {
+      "name": "Run TypingLua Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/vscode-tlua",
+        "${workspaceFolder}/examples"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/vscode-tlua/out/**/*.js"
+      ],
+      "preLaunchTask": "npm: compile - vscode-tlua"
+    }
+  ]
+}

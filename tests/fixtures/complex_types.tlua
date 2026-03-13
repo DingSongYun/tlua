@@ -1,0 +1,16 @@
+-- Complex type annotations
+local x: number | string = 42
+local y: number? = nil
+local callback: fun(number, string): boolean = nil
+local t: table = {}
+
+-- Multiple typed variables
+local a: number, b: string = 1, "hello"
+
+-- Function with complex types
+function process(data: table, cb: fun(string): boolean): number
+  return 0
+end
+
+print(x, y, a, b)
+print(process({}, nil))

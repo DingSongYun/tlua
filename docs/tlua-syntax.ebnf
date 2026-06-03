@@ -51,15 +51,36 @@ postfix_op          = "?"                              (* optional *)
 (* ------------------------------------------------------------ *)
 
 primary_type        = base_type
+                    | user_type
                     | table_type
                     | function_type
                     | "(" , ows , type_expr , ows , ")" ;   (* parenthesized grouping *)
+
+(* ------------------------------------------------------------ *)
+(* 1.4a User-defined types (class names, aliases)                *)
+(* ------------------------------------------------------------ *)
+
+(* Any identifier not in the base_type set is treated as a       *)
+(* user-defined type name. It must be defined via @class or      *)
+(* @alias annotations (e.g., in IntelliSense stub files).        *)
+(* Supports generic parameters: MyClass<T1, T2>                  *)
+(*                                                               *)
+(* Examples:                                                     *)
+(*   AActor, UWidget, FVector         — UE class names           *)
+(*   TArray<FVector>                  — generic container         *)
+(*   TMap<string, AActor>             — generic map               *)
+(*   MyGameState                      — custom Lua class          *)
+
+user_type           = identifier , [ "<" , ows , type_list , ows , ">" ] ;
+
+type_list           = type_expr , { ows , "," , ows , type_expr } ;
 
 (* ------------------------------------------------------------ *)
 (* 1.5 Base types (11 keywords)                                 *)
 (* ------------------------------------------------------------ *)
 
 (* All base type keywords are case-sensitive.                   *)
+(* void is deprecated — omit return type for no-return funcs    *)
 
 base_type           = "nil"
                     | "boolean"
@@ -70,8 +91,7 @@ base_type           = "nil"
                     | "function"         (* bare function, no signature *)
                     | "thread"
                     | "userdata"
-                    | "any"
-                    | "void" ;
+                    | "any" ;
 
 (* ------------------------------------------------------------ *)
 (* 1.6 Table generic type                                       *)

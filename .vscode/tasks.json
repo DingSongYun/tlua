@@ -2,83 +2,55 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "CMake Configure (Debug)",
+            "label": "tlua: build",
             "type": "shell",
-            "command": "cmake",
-            "args": ["-B", "build", "-DCMAKE_BUILD_TYPE=Debug"],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "group": "build",
-            "problemMatcher": []
-        },
-        {
-            "label": "CMake Configure (Release)",
-            "type": "shell",
-            "command": "cmake",
-            "args": ["-B", "build", "-DCMAKE_BUILD_TYPE=Release"],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "group": "build",
-            "problemMatcher": []
-        },
-        {
-            "label": "Build Debug",
-            "type": "shell",
-            "command": "cmake",
-            "args": ["--build", "build", "--config", "Debug"],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
+            "command": "bash",
+            "args": [".claude/skills/run-tlua/smoke.sh", "build"],
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": ["$msCompile"],
-            "dependsOn": "CMake Configure (Debug)"
-        },
-        {
-            "label": "Build Release",
-            "type": "shell",
-            "command": "cmake",
-            "args": ["--build", "build", "--config", "Release"],
-            "options": {
-                "cwd": "${workspaceFolder}"
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
             },
-            "group": "build",
-            "problemMatcher": ["$msCompile"],
-            "dependsOn": "CMake Configure (Release)"
+            "problemMatcher": []
         },
         {
-            "label": "Transpile Current .tlua",
+            "label": "tlua: run current file",
             "type": "shell",
-            "command": "${workspaceFolder}/build/Debug/tluac.exe",
+            "command": "build/tlua.exe",
             "args": ["${file}"],
-            "options": {
-                "cwd": "${workspaceFolder}"
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
             },
-            "problemMatcher": [],
-            "dependsOn": "Build Debug"
+            "problemMatcher": []
         },
         {
-            "label": "Transpile demo.tlua",
+            "label": "tlua: transpile current file",
             "type": "shell",
-            "command": "${workspaceFolder}/build/Debug/tluac.exe",
-            "args": ["examples/demo.tlua"],
-            "options": {
-                "cwd": "${workspaceFolder}"
+            "command": "build/tluac.exe",
+            "args": ["-p", "${file}"],
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
             },
-            "problemMatcher": [],
-            "dependsOn": "Build Debug"
+            "problemMatcher": []
         },
         {
-            "label": "npm: compile - vscode-tlua",
-            "type": "npm",
-            "script": "compile",
-            "path": "vscode-tlua",
-            "problemMatcher": ["$tsc"],
-            "group": "build"
+            "label": "tlua: run tests",
+            "type": "shell",
+            "command": "bash",
+            "args": [".claude/skills/run-tlua/smoke.sh", "test"],
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
         }
     ]
 }

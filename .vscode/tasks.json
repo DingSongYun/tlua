@@ -41,6 +41,39 @@
             "problemMatcher": []
         },
         {
+            "label": "tlua: ensure debug dir",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-Command",
+                "New-Item -ItemType Directory -Force -Path '${workspaceFolder}\\.tlua-debug\\${relativeFileDirname}' | Out-Null"
+            ],
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "tlua: strip current lua for debug",
+            "type": "shell",
+            "command": "${workspaceFolder}\\build\\tluac.exe",
+            "args": [
+                "${file}",
+                "${workspaceFolder}\\.tlua-debug\\${relativeFileDirname}\\${fileBasenameNoExtension}.lua"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": ["tlua: ensure debug dir"],
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "tlua: run tests",
             "type": "shell",
             "command": "bash",

@@ -1,0 +1,78 @@
+-- TypingLua Integration Test File
+-- This file tests syntax highlighting and LSP features
+
+-- 1. Local variable with type annotation
+local name: string = "hello"
+local age: number = 42
+local active: boolean = true
+
+-- 2. Union types
+local id: number | string = "abc"
+
+-- 3. Optional types
+local maybeNil: string? = nil
+
+-- 4. Array types
+local items: string[] = {}
+
+-- 5. Generic types
+local cache: table<string, number> = {}
+
+-- 6. Function type
+local callback: fun(x: number, y: number): number = function(x, y)
+    return x + y
+end
+
+-- 7. Function with parameter types
+function greet(name: string, times: number): string
+    local result: string = ""
+    for i = 1, times do
+        result = result .. "Hello, " .. name .. "! "
+    end
+    return result
+end
+
+-- 8. Local function with types
+local function add(a: number, b: number): number
+    return a + b
+end
+
+-- 9. Method definition with return type
+local MyClass = {}
+MyClass.__index = MyClass
+
+function MyClass:new(name: string): table
+    local self = setmetatable({}, MyClass)
+    self.name = name
+    return self
+end
+
+function MyClass:getName(): string
+    return self.name
+end
+
+-- 10. Multi-return types
+local function divmod(a: number, b: number): number, number
+    return math.floor(a / b), a % b
+end
+
+-- 11. Complex nested types
+local handler: fun(req: table<string, string>, cb: fun(err: string?)): boolean
+
+-- 12. Multiple locals with types
+local x: number, y: string, z: boolean = 1, "hi", true
+
+-- 13. Standard Lua code (should work perfectly)
+local t = { 1, 2, 3 }
+for i, v in ipairs(t) do
+    print(i, v)
+end
+
+-- 14. Test completion / hover
+local msg = greet("World", 3)
+local sum = add(10, 20)
+local q, r = divmod(17, 5)
+
+print(msg)
+-- print(sum)
+-- print(q, r)

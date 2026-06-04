@@ -2,45 +2,75 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug demo.tlua",
+      "name": "Debug current typed .lua",
       "type": "lua",
       "request": "launch",
-      "program": "${workspaceFolder}/examples/demo.lua",
+      "program": "${workspaceFolder}/.vscode/tlua-debug-launcher.lua",
+      "arg": [
+        "${workspaceFolder}/.tlua-debug/${relativeFileDirname}/${fileBasenameNoExtension}.lua",
+        "${relativeFile}"
+      ],
       "cwd": "${workspaceFolder}",
+      "luaexe": "${workspaceFolder}/build/lua.exe",
+      "windows": {
+        "luaexe": "${workspaceFolder}/build/lua.exe"
+      },
       "stopOnEntry": false,
       "luaVersion": "lua54",
       "luaArch": "x86_64",
-      "console": "internalConsole",
-      "outputCapture": ["print", "io.write", "stdout", "stderr"],
-      "sourceCoding": "ansi",
-      "preLaunchTask": "Transpile demo.tlua"
+      "console": "integratedTerminal",
+      "outputCapture": [
+        "print",
+        "io.write",
+        "stdout",
+        "stderr"
+      ],
+      "sourceCoding": "utf8",
+      "preLaunchTask": "tlua: strip current lua for debug"
     },
     {
-      "name": "Debug demo.lua (直接调试转译后文件)",
+      "name": "Debug current .lua (plain)",
       "type": "lua",
       "request": "launch",
-      "program": "${workspaceFolder}/examples/demo.lua",
+      "program": "${file}",
       "cwd": "${workspaceFolder}",
-      "stopOnEntry": true,
+      "luaexe": "${workspaceFolder}/build/lua.exe",
+      "windows": {
+        "luaexe": "${workspaceFolder}/build/lua.exe"
+      },
+      "stopOnEntry": false,
       "luaVersion": "lua54",
       "luaArch": "x86_64",
-      "console": "internalConsole",
-      "outputCapture": ["print", "io.write", "stdout", "stderr"],
-      "sourceCoding": "ansi",
-      "preLaunchTask": "Transpile demo.tlua"
+      "console": "integratedTerminal",
+      "outputCapture": [
+        "print",
+        "io.write",
+        "stdout",
+        "stderr"
+      ],
+      "sourceCoding": "utf8"
     },
     {
-      "name": "Run TypingLua Extension",
-      "type": "extensionHost",
+      "name": "Debug generated stripped .lua",
+      "type": "lua",
       "request": "launch",
-      "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/vscode-tlua",
-        "${workspaceFolder}/examples"
+      "program": "${workspaceFolder}/.tlua-debug/${relativeFileDirname}/${fileBasenameNoExtension}.lua",
+      "cwd": "${workspaceFolder}",
+      "luaexe": "${workspaceFolder}/build/lua.exe",
+      "windows": {
+        "luaexe": "${workspaceFolder}/build/lua.exe"
+      },
+      "stopOnEntry": false,
+      "luaVersion": "lua54",
+      "luaArch": "x86_64",
+      "console": "integratedTerminal",
+      "outputCapture": [
+        "print",
+        "io.write",
+        "stdout",
+        "stderr"
       ],
-      "outFiles": [
-        "${workspaceFolder}/vscode-tlua/out/**/*.js"
-      ],
-      "preLaunchTask": "npm: compile - vscode-tlua"
+      "sourceCoding": "utf8"
     }
   ]
 }

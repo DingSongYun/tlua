@@ -3,6 +3,13 @@ build/
 
 # Transpiled output (generated from .tlua)
 examples/*.lua
+!examples/test_*.lua
+!examples/demo.lua
+examples/stubs/**
+!examples/stubs/*.lua
+
+# Debug stripped output
+.tlua-debug/
 
 # IDE
 .vs/

@@ -138,7 +138,7 @@ local function do_nothing()
 end
 ```
 
-### 3.3 多返回值的括号形式（可选）
+### 3.3 多返回值的括号形式（可选，仅转译器支持）
 
 为了增强可读性，多返回值可以用括号包裹：
 
@@ -149,6 +149,8 @@ end
 ```
 
 两种写法等价。
+
+> **注意**：括号形式目前仅 `tluac` 转译器支持。Language Server 使用逗号分隔形式（`): number, string`）。
 
 ### 3.4 所有函数声明形式
 
@@ -381,9 +383,119 @@ end
 
 ---
 
-## 8. 当前限制与未来扩展
+## 8. 混合模式（Inline + EmmyLua 共存）
 
-### 8.1 已支持的扩展
+TypingLua 采用**混合模式**：inline 标注用于变量/参数/返回值的类型声明，而类型定义（`---@class`、`---@alias`）仍使用 EmmyLua 注释语法。
+
+### 8.1 设计理念
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  类型定义层（Type Definitions）                          │
+│  → 使用 EmmyLua 注释：---@class, ---@alias, ---@enum    │
+│  → 通常在 stub 文件或文件头部声明                        │
+└─────────────────────────────────┬───────────────────────┘
+                                  │ 引用
+┌─────────────────────────────────▼───────────────────────┐
+│  类型引用层（Type Annotations）                          │
+│  → 使用 inline 冒号标注：local x: MyType = ...          │
+│  → 在业务逻辑代码中使用                                  │
+└─────────────────────────────────────────────────────────┘
+```
+
+这种分层是有意为之的：
+
+1. **类型定义**需要描述字段、继承、泛型参数等复杂结构，注释语法更适合
+2. **类型引用**只需要写类型名，inline 标注简洁直观
+3. 与现有 LuaLS 生态完全兼容（所有 `@class` 注解库都可直接使用）
+
+### 8.2 冲突解析规则
+
+当 inline 标注与 EmmyLua 注释作用于同一目标时，**inline 标注优先**：
+
+```lua
+-- ✅ inline 类型优先于 ---@type
+---@type string
+local x: number = 42  -- hover 显示: number（inline 优先）
+
+-- ✅ inline 参数类型优先于 ---@param
+---@param a string
+local function add(a: number, b: number): number
+    return a + b
+end
+-- hover 显示 a: number（inline 优先）
+
+-- ✅ inline 返回类型优先于 ---@return
+---@return string
+local function getName(): number
+    return 42
+end
+-- hover 显示 -> number（inline 优先）
+```
+
+**最佳实践**：避免在同一目标上混用两种标注。如果代码中已有 inline 标注，删除对应的 EmmyLua 注释。
+
+### 8.3 推荐工作流
+
+#### 纯 TypingLua 项目（新项目）
+
+```lua
+-- 文件头：类型定义（EmmyLua 注释）
+---@class Player
+---@field name string
+---@field health number
+
+-- 业务逻辑：inline 标注
+local function createPlayer(name: string): Player
+    return { name = name, health = 100 }
+end
+```
+
+#### UE5 + UnLua 项目（接入现有工程）
+
+```lua
+-- stub 文件由 UnLua IntelliSense 自动生成（无需手动编写）
+-- 业务脚本中直接使用 inline 标注引用 UE 类型：
+
+---@class BP_PlayerCharacter_C : ACharacter
+---@field Health number
+---@field MaxHealth number
+local M = {}
+
+function M:ReceiveBeginPlay()
+    self.Health = self.MaxHealth
+    local loc: FVector = self:K2_GetActorLocation()
+end
+
+function M:TakeDamage(amount: number, instigator: AActor): boolean
+    self.Health = self.Health - amount
+    return self.Health <= 0
+end
+
+return M
+```
+
+#### self 类型推断
+
+在 UnLua 模式下，`self` 的类型由 `---@class` 标注决定：
+
+```lua
+---@class MyClass : AActor
+local MyClass = {}
+
+function MyClass:DoSomething()
+    -- self 的类型是 MyClass（继承 AActor → UObject）
+    -- 可以访问 MyClass 自身字段 + 所有继承链上的方法
+    self:K2_GetActorLocation()  -- ✅ 来自 AActor
+    self:GetName()              -- ✅ 来自 UObject
+end
+```
+
+---
+
+## 9. 当前限制与未来扩展
+
+### 9.1 已支持的扩展
 
 以下特性通过 `---@class` / `---@alias` 注解系统间接支持：
 
@@ -391,16 +503,20 @@ end
 - **泛型类型**：通过 `<T>` 语法支持（如 `TArray<FVector>`）
 - **类型检查**：Language Server 提供 hover、completion、diagnostics
 
-### 8.2 UE5 集成注意事项
+### 9.2 UE5 集成注意事项
 
 在 UE5 + UnLua 工程中使用时：
 
-- inline 标注中引用的 UE 类型需要 UnLua IntelliSense stub 文件支持
-- `---@type` 注释与 inline 标注不应同时用于同一变量（inline 优先）
-- Language Server 需配置 `"Lua.typingLua.enabled": true` 启用 inline 模式
-- 运行时需要类型擦除预处理（构建管线或加载层 hook）
+| 项目 | 说明 |
+|------|------|
+| Stub 文件 | UnLua IntelliSense 导出的 `@class` 定义，放在 workspace library path |
+| 配置开关 | `.luarc.json` 中设置 `"Lua.typingLua.enabled": true` |
+| 运行时 | UE 引擎加载 `.lua` 文件时需要类型擦除预处理 |
+| 开发阶段 | 通过 UnLua 加载层 hook 自动 strip（推荐方案 R2/R3） |
+| 发布阶段 | 构建管线中批量转译，发布包只含标准 `.lua`（方案 R1） |
+| 热重载 | strip 过程保持行号 1:1 映射，热重载正常工作 |
 
-### 8.3 未来扩展
+### 9.3 未来扩展
 
 以下特性**不在当前版本范围内**：
 

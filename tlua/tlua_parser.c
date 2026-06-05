@@ -256,9 +256,52 @@ static void skip_primary_type(TluaParser *p) {
         return;
     }
 
-    /* base type keyword or identifier */
+    /* base type keyword or identifier (possibly with generic args) */
     if (tok.type == TK_NAME || tok.type == TK_NIL || tok.type == TK_FUNCTION) {
         next_token(p); /* skip the type name */
+
+        /* Check for generic type arguments: Identifier<T1, T2, ...> */
+        if (tok.type == TK_NAME) {
+            const char *saved_cur = p->lexer.current;
+            int saved_line = p->lexer.line;
+            int saved_col = p->lexer.col;
+            TluaToken saved_tok = p->lexer.token;
+            int saved_has_la = p->lexer.has_lookahead;
+            TluaToken saved_la = p->lexer.lookahead;
+
+            TriviaList trivia;
+            skip_trivia_collect(p, &trivia);
+            if (current(p).type == TK_LT) {
+                /* Generic args: skip <T1, T2, ...> */
+                next_token(p); /* skip < */
+                skip_trivia_collect(p, &trivia);
+                skip_type_expr(p); /* first type arg */
+                skip_trivia_collect(p, &trivia);
+                while (current(p).type == TK_COMMA) {
+                    next_token(p); /* skip , */
+                    skip_trivia_collect(p, &trivia);
+                    skip_type_expr(p); /* next type arg */
+                    skip_trivia_collect(p, &trivia);
+                }
+                if (current(p).type == TK_GT) {
+                    next_token(p); /* skip > */
+                } else if (current(p).type == TK_SHR) {
+                    /* '>>' lexed as TK_SHR — consume one '>' for this generic */
+                    TluaToken shr = current(p);
+                    p->lexer.token.type = TK_GT;
+                    p->lexer.token.start = shr.start + 1;
+                    p->lexer.token.length = 1;
+                }
+            } else {
+                /* No generic args — restore state */
+                p->lexer.current = saved_cur;
+                p->lexer.line = saved_line;
+                p->lexer.col = saved_col;
+                p->lexer.token = saved_tok;
+                p->lexer.has_lookahead = saved_has_la;
+                p->lexer.lookahead = saved_la;
+            }
+        }
         return;
     }
 
